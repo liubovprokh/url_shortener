@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  postgres:
+    restart: always
+    build:
+      context: .
+      dockerfile: ./docker/postgres/Dockerfile
+    ports:
+      - "3333:5432"
+    expose:
+      - "3333"
+    env_file:
+      - .env
+    volumes:
+      - ./docker/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - /var/lib/postgresql/data
+  nginx:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
+    volumes:
+      - ./src/static:/code/src/static
+      - ./src/media:/code/src/media
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/default.conf:/etc/nginx/sites-enabled/default.conf
+    ports:
+      - "80:80"
+    links:
+      - fastapi
+  fastapi:
+    build:
+      context: .
+      dockerfile: ./docker/fastapi/Dockerfile
+    volumes:
+      - ./shortener_app/:/app/
+    ports:
+      - "8000"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
